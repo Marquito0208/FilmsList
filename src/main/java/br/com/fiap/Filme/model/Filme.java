@@ -1,15 +1,21 @@
 package br.com.fiap.Filme.model;
 
-import java.util.Random;
 
-public record Filme(Long id, String nome, String url, String descricao) {
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import lombok.Data;
 
-    public Filme(Long id, String nome, String url, String descricao){
-        var key = (id != null) ? id : Math.abs( new Random().nextLong() );
-        this.id = key;
-        this.nome = nome;
-        this.url = url; 
-        this.descricao = descricao;
-    }
-    
-} 
+@Data
+@Entity
+public class Filme {
+
+    @Id @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
+    private String nome;
+    private String url;
+    private String descricao;
+
+
+}

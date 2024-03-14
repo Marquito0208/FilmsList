@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,82 +14,83 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import br.com.fiap.Filme.model.Filme;
+import br.com.fiap.Filme.repository.FilmeListRepository;
+
 
 @RestController
 @RequestMapping("filmes")
 public class FilmeController {
 
 
-    List<Filme> repository = new ArrayList<>();
+
     
+    @Autowired
+    FilmeListRepository filmeListRepository;
+
+
+
     @GetMapping
     public List<Filme> index(){
-        return repository;
+        return filmeListRepository.findAll();
     }
+
 
     @PostMapping  
-    public ResponseEntity<Filme> create(@RequestBody Filme filme){
-        repository.add(filme);
-        return ResponseEntity
-            .status(HttpStatus.CREATED)
-            .body(filme);
-    }
-
-
-    
-    @DeleteMapping("{id}")
-    public ResponseEntity<Object> destroy(@PathVariable Long id) {
-
-        var optionalFilme = buscarFilmePorId(id);
-
-        if (optionalFilme.isEmpty())
-            return ResponseEntity.notFound().build();
-
-        repository.remove(optionalFilme.get());
-
-        return ResponseEntity.noContent().build();
-
+    @ResponseStatus(code = HttpStatus.CREATED)
+    public Filme create(@RequestBody Filme filme){
+        filmeListRepository.save(filme);
+        return filme;
     }
 
 
     @GetMapping("{id}")
     public ResponseEntity<Filme> get(@PathVariable Long id) {
         
-        var optionalFilme = buscarFilmePorId(id);
-
-        if (optionalFilme.isEmpty())
-            return ResponseEntity.notFound().build();
-
-        return ResponseEntity.ok(optionalFilme.get());
+        return filmeListRepository
+                    .findById(id)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
     }
 
+
+
+    
+    @DeleteMapping("{id}")
+    public ResponseEntity<Object> destroy(@PathVariable Long id) {
+
+        verificarSeExistefilme(id);
+
+        filmeListRepository.deleteById(id);
+
+        return ResponseEntity.noContent().build();
+
+    }
+
+
+ 
 
     @PutMapping("{id}")
     public ResponseEntity<Object> update(@PathVariable Long id, @RequestBody Filme filme){
-        
-        var optionalFilme = buscarFilmePorId(id);
+     
+        verificarSeExistefilme(id);
 
-        if (optionalFilme.isEmpty())
-            return ResponseEntity.notFound().build();
-
-        var filmeEncontrado = optionalFilme.get();
-        var filmeAtualizado = new Filme(id, filme.nome(), filme.url(), filme.descricao());
-        repository.remove(filmeEncontrado);
-        repository.add(filmeAtualizado);
-
-        return ResponseEntity.ok().body(filmeAtualizado);
+        filme.setId(id);
+        filmeListRepository.save(filme);
+        return ResponseEntity.ok(filme);
     }
 
     
-    private Optional<Filme> buscarFilmePorId(Long id) {
-        var optionalFilme = repository
-                .stream()
-                .filter(c -> c.id().equals(id))
-                .findFirst();
-        return optionalFilme;
+     private void verificarSeExistefilme(Long id) {
+            filmeListRepository
+            .findById(id)
+            .orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoria não encontrada" )
+            );
     }
 
 }
